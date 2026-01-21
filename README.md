@@ -2,6 +2,74 @@
 
 Application PHP de démonstration pour le cours DevSecOps.
 
+**Projet GitHub** : https://github.com/potichacha/devsecops-php-ci-cd
+
+---
+
+## Pour refaire le projet 
+
+### Ce qui est déjà configuré
+
+- [x] Repo GitHub créé
+- [x] CircleCI connecté au repo
+- [x] Variables d'environnement CircleCI (GHCR_USERNAME, GHCR_PAT, INFISICAL_TOKEN)
+- [x] Infisical configuré avec le secret APP_SECRET
+- [x] Pipeline CI/CD fonctionnel (build, test, lint, security)
+- [x] Job deploy-ssh-production créé
+
+### Ce que vous devez faire
+
+#### 1. Rejoindre le repo GitHub
+
+1. Cloner le repo :
+```bash
+git clone https://github.com/potichacha/devsecops-php-ci-cd.git
+cd devsecops-php-ci-cd
+```
+
+#### 2. Accéder à CircleCI
+
+1. Aller sur **https://circleci.com**
+2. Se connecter avec **GitHub**
+3. Le projet **devsecops-php-ci-cd** devrait apparaître automatiquement
+4. Vous pouvez voir les pipelines et leur statut
+
+#### 3. Accéder à Infisical (optionnel)
+
+1. Aller sur **https://infisical.com** et accepter l'invitation
+2. Vous pourrez voir/modifier les secrets
+
+#### 4. Tester l'application en local
+
+```bash
+# Construire l'image Docker
+docker build -t php-devops-tp -f Docker/Dockerfile .
+
+# Lancer le conteneur
+docker run -d -p 8080:80 -e APP_SECRET="MonSecretTest" --name php-devops-app php-devops-tp
+
+# Installer les dépendances
+docker exec php-devops-app composer install --no-interaction
+
+# Tester : ouvrir http://localhost:8080
+```
+
+#### 5. Workflow de travail
+
+```bash
+# Créer une branche pour vos modifications
+git checkout -b feature/mon-travail
+
+# Faire vos modifications...
+
+# Commiter et pusher
+git add .
+git commit -m "Description de vos modifications"
+git push origin feature/mon-travail
+
+# Créer une Pull Request sur GitHub
+```
+
 ---
 
 ## PARTIE 1 : Lancer l'Application en Local
@@ -51,183 +119,284 @@ docker stop php-devops-app
 
 ---
 
-## PARTIE 2 : Configuration CI/CD
-
-### Étape 2.1 : Créer le repo GitHub
-
-1. Aller sur **github.com**
-2. Cliquer sur **"+"** en haut à droite → **"New repository"**
-3. Nom : `devsecops-php-ci-cd`
-4. Visibilité : **Public** ou **Private**
-5. Cliquer **"Create repository"**
-
-### Étape 2.2 : Pusher le code sur GitHub
-
-```bash
-# Initialiser git (si pas déjà fait)
-git init
-
-# Ajouter le remote
-git remote add origin https://github.com/TON_USERNAME/devsecops-php-ci-cd.git
-
-# Ajouter tous les fichiers
-git add .
-
-# Créer le premier commit
-git commit -m "Initial commit"
-
-# Pusher sur GitHub
-git push -u origin main
-```
+## PARTIE 2 : Configuration CI/CD (fait )
 
 ### Étape 2.3 : Connecter CircleCI au repo
 
 1. Aller sur **https://circleci.com**
-2. Cliquer **"Log In"** (en haut à droite)
-3. Choisir **"Log in with GitHub"**
-4. Autoriser CircleCI à accéder à ton compte GitHub
-5. Tu arrives sur le dashboard CircleCI
-6. Dans la liste des projets, trouver **devsecops-php-ci-cd**
+2. Cliquer **"Log In"** → **"Log in with GitHub"**
+3. Autoriser CircleCI
+4. Trouver le projet **devsecops-php-ci-cd**
+5. Cliquer **"Set Up Project"**
+6. Sélectionner **"Fastest: Use the .circleci/config.yml in my repo"**
 7. Cliquer **"Set Up Project"**
-8. Sélectionner **"Fastest: Use the .circleci/config.yml in my repo"**
-9. Cliquer **"Set Up Project"**
-
-> CircleCI va automatiquement détecter le fichier `.circleci/config.yml` et lancer le premier build.
 
 ### Étape 2.4 : Créer un Personal Access Token GitHub (pour GHCR)
 
-1. Aller sur **GitHub**
-2. Cliquer sur ta **photo de profil** (en haut à droite)
-3. Cliquer **"Settings"**
-4. Descendre tout en bas et cliquer **"Developer settings"** (menu à gauche)
-5. Cliquer **"Personal access tokens"**
-6. Cliquer **"Tokens (classic)"**
-7. Cliquer **"Generate new token"** → **"Generate new token (classic)"**
-8. Remplir :
-   - **Note** : `circleci-ghcr`
-   - **Expiration** : 90 days (ou plus)
-9. Cocher les permissions :
-   - [x] `write:packages`
-   - [x] `read:packages`
-10. Cliquer **"Generate token"**
-11. **COPIER LE TOKEN IMMÉDIATEMENT** (il ne sera plus visible après !)
+1. GitHub → **Settings** → **Developer settings** → **Personal access tokens** → **Tokens (classic)**
+2. **Generate new token (classic)**
+3. Nom : `circleci-ghcr`
+4. Cocher : `write:packages`, `read:packages`
+5. **Generate token** → **COPIER LE TOKEN**
 
-> Ce token permet à CircleCI de pusher les images Docker vers GitHub Container Registry (GHCR).
+### Étape 2.5 : Ajouter les variables dans CircleCI
 
-### Étape 2.5 : Ajouter les variables GHCR dans CircleCI
-
-1. Aller sur **CircleCI** (https://app.circleci.com)
-2. Cliquer sur ton projet **devsecops-php-ci-cd**
-3. Cliquer **"Project Settings"** (icône engrenage en haut à droite)
-4. Dans le menu à gauche, cliquer **"Environment Variables"**
-5. Cliquer **"Add Environment Variable"**
-
-**Ajouter ces 2 variables :**
+1. CircleCI → Projet → **Project Settings** → **Environment Variables**
+2. Ajouter :
 
 | Name | Value |
 |------|-------|
-| `GHCR_USERNAME` | ton username GitHub (ex: `potichacha`) |
-| `GHCR_PAT` | le token copié à l'étape 2.4 |
+| `GHCR_USERNAME` | ton username GitHub |
+| `GHCR_PAT` | le token GitHub |
 
-> Ces variables permettent au job `build-docker-image` de se connecter à GHCR.
+### Étape 2.6 : Configurer Infisical
 
----
-
-## PARTIE 2.3 : Gestion des Secrets avec Infisical
-
-### Étape 2.6 : Créer un compte Infisical
-
-1. Aller sur **https://infisical.com**
-2. Cliquer **"Get Started"** ou **"Sign Up"**
-3. Créer un compte (avec GitHub ou email)
-4. Remplir le formulaire :
-   - **Your Name** : ton nom
-   - **Organization Name** : `Ecole` (ou ce que tu veux)
-5. Cliquer **"Sign Up"**
-
-> Infisical est un gestionnaire de secrets qui permet de stocker les mots de passe, API keys, etc. de manière sécurisée.
-
-### Étape 2.7 : Créer un projet Infisical
-
-1. Une fois connecté, cliquer **"+ Add New Project"**
-2. Remplir :
-   - **Project Name** : `php-devops-tp`
-   - **Project Type** : `Secrets Management` (déjà sélectionné)
-3. Cliquer **"Create Project"**
-
-### Étape 2.8 : Ajouter un secret
-
-1. Dans ton projet, tu es sur la page **"Project Overview"**
-2. Cliquer **"Add Secrets"** (au centre) ou **"+ Add Secret"** (en haut à droite)
-3. Remplir :
-   - **Key** : `APP_SECRET`
-   - **Value** : `MonSecretInfisical123`
-   - **Environments** : sélectionner **Production**
-4. Cliquer **"Create Secret"**
-
-> Ce secret sera utilisé par l'application PHP pour afficher le message sur l'image.
-
-### Étape 2.9 : Créer un Service Token
-
-1. Dans Infisical, cliquer sur **"Access Control"** (menu en haut)
-2. Dans le menu à gauche, cliquer **"Service Tokens"**
-3. Cliquer **"Create"**
-4. Remplir :
-   - **Service Token Name** : `circleci`
-   - **Environment** : sélectionner **Production**
-   - **Secrets Path** : `/` (laisser par défaut)
-   - **Expiration** : `Never` ou `6 Months`
-   - **Permissions** : `Read` (déjà coché)
-5. Cliquer **"Create"**
-6. **COPIER LE TOKEN IMMÉDIATEMENT** (il ne sera plus visible après !)
-
-> Ce token permet à CircleCI (ou au conteneur Docker) de récupérer les secrets depuis Infisical.
-
-### Étape 2.10 : Ajouter le token Infisical dans CircleCI
-
-1. Retourner sur **CircleCI**
-2. Aller dans **Project Settings** → **Environment Variables**
-3. Cliquer **"Add Environment Variable"**
-4. Ajouter :
-   - **Name** : `INFISICAL_TOKEN`
-   - **Value** : le token copié à l'étape 2.9
-5. Cliquer **"Add Environment Variable"**
+1. Créer un compte sur **https://infisical.com**
+2. Créer un projet `php-devops-tp`
+3. Ajouter un secret : `APP_SECRET` = `MonSecretInfisical123`
+4. Créer un Service Token (Access Control → Service Tokens)
+5. Ajouter dans CircleCI : `INFISICAL_TOKEN` = le token
 
 ---
 
-## Étape 2.11 : Pusher le code pour déclencher le pipeline
+## PARTIE 3 : Extension du Pipeline (À FAIRE)
 
-```bash
-git add .
-git commit -m "Add README and configure CI/CD pipeline"
-git push origin main
+### 3.1 Jobs d'évaluation de code à ajouter
+
+#### Job phpmetrics
+> Génère des métriques de qualité du code PHP
+
+```yaml
+# À ajouter dans .circleci/config.yml (section jobs)
+metrics-phpmetrics:
+  executor: php-executor
+  steps:
+    - *attach_workspace
+    - run:
+        name: Install PHPMetrics
+        command: composer require --dev phpmetrics/phpmetrics
+    - run:
+        name: Run PHPMetrics
+        command: ./vendor/bin/phpmetrics --report-html=phpmetrics-report ./src
+    - store_artifacts:
+        path: phpmetrics-report
+        destination: phpmetrics-report
 ```
 
-> Cela déclenche automatiquement le pipeline CircleCI.
+#### Job phploc
+> Compte les lignes de code, classes, méthodes, etc.
 
-### Étape 2.12 : Vérifier que le pipeline fonctionne
+```yaml
+metrics-phploc:
+  executor: php-executor
+  steps:
+    - *attach_workspace
+    - run:
+        name: Install phploc
+        command: composer require --dev phploc/phploc
+    - run:
+        name: Run phploc
+        command: ./vendor/bin/phploc --log-xml=phploc-report.xml ./src
+    - store_artifacts:
+        path: phploc-report.xml
+        destination: phploc-report
+```
 
-1. Aller sur **CircleCI** → **Pipelines**
-2. Tu dois voir le pipeline en cours d'exécution
-3. Les jobs suivants doivent passer en vert :
-   - `debug-info` ✅
-   - `build-setup` ✅
-   - `lint-phpcs` ✅
-   - `security-check-dependencies` ✅
-   - `test-phpunit` ✅
-   - `build-docker-image` ✅
+### 3.2 Jobs de qualité de code à ajouter
 
-> Le job `hold` attend une approbation manuelle avant de déployer en production.
+#### Job phpmd (PHP Mess Detector)
+> Détecte les problèmes de conception du code
+
+```yaml
+lint-phpmd:
+  executor: php-executor
+  steps:
+    - *attach_workspace
+    - run:
+        name: Install PHPMD
+        command: composer require --dev phpmd/phpmd
+    - run:
+        name: Run PHPMD
+        command: |
+          ./vendor/bin/phpmd ./src html cleancode,codesize,controversial,design,naming,unusedcode --reportfile phpmd-report.html || true
+    - store_artifacts:
+        path: phpmd-report.html
+        destination: phpmd-report
+```
+
+#### Job php-doc-check
+> Vérifie la documentation du code
+
+```yaml
+lint-php-doc-check:
+  executor: php-executor
+  steps:
+    - *attach_workspace
+    - run:
+        name: Install php-doc-check
+        command: composer require --dev niels-de-blaauw/php-doc-check
+    - run:
+        name: Run php-doc-check
+        command: ./vendor/bin/php-doc-check ./src || true
+```
+
+### 3.3 Ajouter les jobs au workflow
+
+```yaml
+# Dans la section workflows → main_workflow → jobs
+- metrics-phpmetrics:
+    requires:
+      - build-setup
+- metrics-phploc:
+    requires:
+      - build-setup
+- lint-phpmd:
+    requires:
+      - build-setup
+- lint-php-doc-check:
+    requires:
+      - build-setup
+```
+
+### 3.4 Déploiement AWS EC2
+
+#### Prérequis
+1. Une instance EC2 avec PHP, Apache/Nginx, Composer installés
+2. Une clé SSH pour se connecter à l'instance
+3. Le repo cloné sur l'instance
+
+#### Variables à ajouter dans CircleCI
+
+| Variable | Description |
+|----------|-------------|
+| `PROD_SSH_USER` | `ubuntu` ou `ec2-user` |
+| `PROD_SSH_HOST` | IP ou DNS de l'instance EC2 |
+| `PROD_SSH_FINGERPRINT` | Fingerprint de la clé SSH |
+| `PROD_DEPLOY_DIRECTORY` | `/var/www/html` |
+
+#### Ajouter la clé SSH dans CircleCI
+1. Project Settings → **SSH Keys**
+2. **Add SSH Key**
+3. Coller la clé privée
+4. Copier le fingerprint généré
+
+---
+
+## PARTIE 4 : Documentation et Rapport (À FAIRE)
+
+### Contenu du rapport
+
+1. **Introduction**
+   - Présentation du projet
+   - Objectifs du TP
+
+2. **Partie 1 : Configuration locale**
+   - Screenshots de l'application en local
+   - Explication du Dockerfile
+
+3. **Partie 2 : Pipeline CI/CD**
+   - Schéma du pipeline (voir ci-dessous)
+   - Explication de chaque job
+   - Screenshots de CircleCI
+
+4. **Partie 3 : Extensions**
+   - Jobs ajoutés et leur utilité
+   - Screenshots des rapports générés
+
+5. **Partie 5 : Sécurité**
+   - Mesures de sécurité GitHub
+   - Scan de l'image Docker
+   - Sécurité EC2
+
+6. **Conclusion**
+   - Défis rencontrés
+   - Solutions apportées
+
+### Schéma du Pipeline
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        MAIN WORKFLOW                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐                                               │
+│  │  debug-info  │                                               │
+│  └──────────────┘                                               │
+│                                                                 │
+│  ┌──────────────┐    ┌─────────────┐    ┌────────────────────┐  │
+│  │ build-setup  │───►│  lint-phpcs │    │ security-check-    │  │
+│  └──────────────┘    └─────────────┘    │ dependencies       │  │
+│         │                               └────────────────────┘  │
+│         │            ┌─────────────┐                            │
+│         ├───────────►│ test-phpunit│                            │
+│         │            └─────────────┘                            │
+│         │            ┌─────────────┐                            │
+│         ├───────────►│ lint-phpmd  │  (À ajouter)               │
+│         │            └─────────────┘                            │
+│         │            ┌──────────────────┐                       │
+│         ├───────────►│ metrics-phpmetrics│  (À ajouter)         │
+│         │            └──────────────────┘                       │
+│         │            ┌──────────────┐                           │
+│         └───────────►│ metrics-phploc│  (À ajouter)             │
+│                      └──────────────┘                           │
+│                                                                 │
+│  ┌──────────────┐    ┌─────────────────────────┐                │
+│  │    hold      │───►│ deploy-ssh-production   │                │
+│  │  (approval)  │    │ (branches: main/master) │                │
+│  └──────────────┘    └─────────────────────────┘                │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                     CONTAINER WORKFLOW                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌────────────────────┐                                         │
+│  │ build-docker-image │───► Push to GHCR                        │
+│  └────────────────────┘                                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## PARTIE 5 : Sécurité (À FAIRE)
+
+### 5.1 Sécurité GitHub
+
+- [ ] Activer 2FA sur tous les comptes
+- [ ] Configurer Branch Protection sur `main`
+- [ ] Vérifier les permissions des collaborateurs
+- [ ] Scanner les secrets avec `git-secrets` ou `trufflehog`
+
+### 5.2 Sécurité Docker
+
+- [ ] Scanner l'image avec **Trivy** :
+```bash
+trivy image ghcr.io/potichacha/devsecops-php-ci-cd:main
+```
+- [ ] Ajouter un job de scan dans le pipeline
+
+### 5.3 Sécurité AWS EC2
+
+- [ ] Vérifier les Security Groups (ports ouverts)
+- [ ] Désactiver connexion SSH root
+- [ ] Configurer fail2ban
+- [ ] Utiliser des clés SSH (pas de mots de passe)
 
 ---
 
 ## Résumé des Variables CircleCI
 
-| Variable | Description | Où la trouver |
-|----------|-------------|---------------|
-| `GHCR_USERNAME` | Username GitHub | Ton profil GitHub |
-| `GHCR_PAT` | Personal Access Token GitHub | GitHub → Settings → Developer settings → Tokens |
-| `INFISICAL_TOKEN` | Service Token Infisical | Infisical → Access Control → Service Tokens |
+| Variable | Description | Statut |
+|----------|-------------|--------|
+| `GHCR_USERNAME` | Username GitHub | ✅ Configuré |
+| `GHCR_PAT` | Personal Access Token GitHub | ✅ Configuré |
+| `INFISICAL_TOKEN` | Service Token Infisical | ✅ Configuré |
+| `PROD_SSH_USER` | User SSH EC2 production | ❌ À configurer |
+| `PROD_SSH_HOST` | Host EC2 production | ❌ À configurer |
+| `PROD_SSH_FINGERPRINT` | Fingerprint clé SSH | ❌ À configurer |
+| `PROD_DEPLOY_DIRECTORY` | Répertoire de déploiement | ❌ À configurer |
 
 ---
 
@@ -270,3 +439,12 @@ L'application génère une **image PNG dynamique** qui affiche :
 - Librairie GD (génération d'images)
 - Carbon (manipulation de dates)
 - phpdotenv (chargement des variables d'environnement)
+
+---
+
+## Membres du Groupe
+
+- Membre 1 : [Nom]
+- Membre 2 : [Nom]
+- Membre 3 : [Nom]
+- Membre 4 : [Nom]

@@ -189,10 +189,12 @@ jobs:
       - *attach_workspace
       - run:
           name: Install phploc
-          command: composer require --dev phploc/phploc
+          command: |
+            curl -L -o phploc.phar https://phar.phpunit.de/phploc.phar
+            chmod +x phploc.phar
       - run:
           name: Run phploc
-          command: ./vendor/bin/phploc --log-xml=phploc-report.xml ./src
+          command: php phploc.phar --log-xml=phploc-report.xml ./src || true
       - store_artifacts:
           path: phploc-report.xml
           destination: phploc-report

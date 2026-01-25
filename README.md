@@ -31,9 +31,9 @@ Application PHP de démonstration pour le cours DevSecOps.
 | 2 | Infisical configuré | Fait | Sacha |
 | 2 | Job deploy-ssh-production créé | Fait | Sacha |
 | 3 | Job metrics-phpmetrics | Fait | Sacha |
-| 3 | Job metrics-phploc | fait | Sacha |
-| 3 | Job lint-phpmd | À faire | - |
-| 3 | Job lint-php-doc-check | À faire | - |
+| 3 | Job metrics-phploc | Fait | Sacha |
+| 3 | Job lint-phpmd | Fait | Sacha |
+| 3 | Job lint-php-doc-check | Fait | Sacha |
 | 3 | Déploiement AWS EC2 | À faire | - |
 | 4 | Rapport final | À faire | - |
 | 5 | Sécurité GitHub | À faire | - |
@@ -157,6 +157,8 @@ docker stop php-devops-app
 | `test-phpunit` | Exécute les tests unitaires |
 | `metrics-phpmetrics` | Génère rapport métriques HTML |
 | `metrics-phploc` | Compte les lignes de code |
+| `lint-phpmd` | PHP Mess Detector - qualité du code |
+| `lint-php-doc-check` | Vérifie la documentation du code |
 | `build-docker-image` | Build et push image vers GHCR |
 | `deploy-ssh-production` | Déploiement SSH (pas encore configuré) | **A FAIRE** |
 
@@ -228,16 +230,18 @@ metrics-phploc:
 
 ---
 
-## 3.2 Jobs de qualité de code (À FAIRE)
+## 3.2 Jobs de qualité de code (Fait)
 
-### Job lint-phpmd (À faire)
+### Job lint-phpmd (Fait)
 
 **Ce que ça fait** : PHP Mess Detector - détecte les problèmes de conception du code (code mort, complexité, etc.)
 
-**Comment l'ajouter** :
+**Comment voir le rapport** :
+1. Aller sur CircleCI -> Pipeline -> Job `lint-phpmd`
+2. Onglet **Artifacts**
+3. Cliquer sur `phpmd-report.html`
 
-1. Ouvrir `.circleci/config.yml`
-2. Ajouter ce job dans la section `jobs:` (après `metrics-phploc`) :
+**Code du job** :
 
 ```yaml
   lint-phpmd:
@@ -250,35 +254,22 @@ metrics-phploc:
       - run:
           name: Run PHPMD
           command: |
-            ./vendor/bin/phpmd ./src html cleancode,codesize,controversial,design,naming,unusedcode --reportfile phpmd-report.html || true
+            ./vendor/bin/phpmd ./src html cleancode,codesize,controversial,design,naming,unusedcode --report-file=phpmd-report.html || true
       - store_artifacts:
           path: phpmd-report.html
           destination: phpmd-report
 ```
 
-3. Ajouter le job dans le workflow `main_workflow` (section `workflows:`) :
-
-```yaml
-      - lint-phpmd:
-          requires:
-            - build-setup
-```
-
-4. Commit et push :
-```bash
-git add .
-git commit -m "Add lint-phpmd job"
-git push origin main
-```
-
-### Job lint-php-doc-check (À faire)
+### Job lint-php-doc-check (Fait)
 
 **Ce que ça fait** : Vérifie que le code est bien documenté (PHPDoc).
 
-**Comment l'ajouter** :
+**Comment voir le rapport** :
+1. Aller sur CircleCI -> Pipeline -> Job `lint-php-doc-check`
+2. Onglet **Artifacts**
+3. Télécharger `php-doc-check-report.txt`
 
-1. Ouvrir `.circleci/config.yml`
-2. Ajouter ce job dans la section `jobs:` :
+**Code du job** :
 
 ```yaml
   lint-php-doc-check:
@@ -290,18 +281,12 @@ git push origin main
           command: composer require --dev niels-de-blaauw/php-doc-check
       - run:
           name: Run php-doc-check
-          command: ./vendor/bin/php-doc-check ./src || true
+          command: |
+            ./vendor/bin/php-doc-check ./src > php-doc-check-report.txt || true
+      - store_artifacts:
+          path: php-doc-check-report.txt
+          destination: php-doc-check-report
 ```
-
-3. Ajouter le job dans le workflow `main_workflow` :
-
-```yaml
-      - lint-php-doc-check:
-          requires:
-            - build-setup
-```
-
-4. Commit et push.
 
 ---
 

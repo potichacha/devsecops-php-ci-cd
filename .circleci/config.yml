@@ -200,6 +200,38 @@ jobs:
           destination: phploc-report
 
 
+  lint-phpmd:
+    executor: php-executor
+    steps:
+      - *attach_workspace
+      - run:
+          name: Install PHPMD
+          command: composer require --dev phpmd/phpmd
+      - run:
+          name: Run PHPMD
+          command: |
+            ./vendor/bin/phpmd ./src html cleancode,codesize,controversial,design,naming,unusedcode --report-file=phpmd-report.html || true
+      - store_artifacts:
+          path: phpmd-report.html
+          destination: phpmd-report
+
+
+  lint-php-doc-check:
+    executor: php-executor
+    steps:
+      - *attach_workspace
+      - run:
+          name: Install php-doc-check
+          command: composer require --dev niels-de-blaauw/php-doc-check
+      - run:
+          name: Run php-doc-check
+          command: |
+            ./vendor/bin/php-doc-check ./src > php-doc-check-report.txt || true
+      - store_artifacts:
+          path: php-doc-check-report.txt
+          destination: php-doc-check-report
+
+
   build-docker-image:
     executor: builder-executor
     steps:
@@ -295,6 +327,12 @@ workflows:
           requires:
             - build-setup
       - metrics-phploc:
+          requires:
+            - build-setup
+      - lint-phpmd:
+          requires:
+            - build-setup
+      - lint-php-doc-check:
           requires:
             - build-setup
       - hold:

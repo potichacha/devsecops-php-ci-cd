@@ -293,19 +293,24 @@ jobs:
   deploy-ssh-production:
     executor: simple-executor
     steps:
+      - checkout
       - add_ssh_keys:
           fingerprints:
-            - "${PROD_SSH_FINGERPRINT}"
-      - deploy:
+            - "SHA256:fVrzNmOU1wUYS9sRBQFH+SFZVU41VH0Tv7FoHO5qlxg"
+      - run:
           name: Deploy to Production AWS
           command: |
-            set -x
-            ssh -o StrictHostKeyChecking=no $PROD_SSH_USER@$PROD_SSH_HOST \<< EOF
-            PHP_FPM_VERSION=\$(php -v | head -n 1 | cut -d ' ' -f 2 | cut -d '.' -f 1-2)
+            eval $(ssh-agent -s)
+            for key in ~/.ssh/id_rsa_*; do
+              [ -f "$key" ] && ssh-add "$key"
+            done
+            ssh-add -l
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $PROD_SSH_USER@$PROD_SSH_HOST \<< 'EOF'
+            PHP_FPM_VERSION=$(php -v | head -n 1 | cut -d ' ' -f 2 | cut -d '.' -f 1-2)
             cd $PROD_DEPLOY_DIRECTORY
-            git pull origin $CIRCLE_BRANCH
+            git pull origin main
             composer install --optimize-autoloader --no-interaction --prefer-dist --no-dev
-            (flock -w 10 9 || exit 1; sudo -S service php\${PHP_FPM_VERSION}-fpm restart ) 9>/tmp/fpm.lock
+            sudo service php${PHP_FPM_VERSION}-fpm restart || true
             EOF
 
 

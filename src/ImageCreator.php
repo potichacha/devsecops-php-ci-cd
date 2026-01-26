@@ -27,7 +27,7 @@ class ImageCreator
         array  $yourColor = [128, 128, 128],
         array  $yourColor2 = [60, 80, 57],
         string $text = "DEVOPS",
-        string $text2 = "Une superbe image"
+        string $text2 = "Déploiement automatique réussi !"
     ) {
         // Création d'une image de 400x200 pixels
         $this->im = imagecreatetruecolor(600, 200);

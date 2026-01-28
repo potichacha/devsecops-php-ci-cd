@@ -313,6 +313,19 @@ jobs:
             sudo service php${PHP_FPM_VERSION}-fpm restart || true
             EOF
 
+  security-scan-docker:
+    executor: builder-executor
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Install Trivy
+          command: |
+            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+      - run:
+          name: Scan Docker image
+          command: |
+            trivy image ghcr.io/potichacha/devsecops-php-ci-cd:main --severity HIGH,CRITICAL
 
 workflows:
   main_workflow:
@@ -378,3 +391,9 @@ workflows:
                 - /^release\/.*/
                 - /^hotfix\/.*/
                 - /^bugfix\/.*/
+      - security-scan-docker:
+          requires:
+            - build-docker-image
+          filters:
+            branches:
+              only: [main]

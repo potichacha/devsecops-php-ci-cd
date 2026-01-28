@@ -461,6 +461,8 @@ docker run --rm -it -v "$PWD:/pwd" trufflesecurity/trufflehog:latest github --re
 ```bash
 # Installer Trivy (ou utiliser Docker)
 docker run --rm aquasec/trivy image ghcr.io/potichacha/devsecops-php-ci-cd:main
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image php-devops-tp --severity HIGH,CRITICAL
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 1 --severity CRITICAL php-devops-tp
 ```
 
 ### Ajouter un job de scan dans le pipeline (optionnel)

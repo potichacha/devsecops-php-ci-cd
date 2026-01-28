@@ -92,6 +92,9 @@ RUN mkdir -p /var/www/html/vendor \
 #Change permission to allow app to work properly
 RUN chown -R www-data:www-data /var/www/html
 
+# Update the system
+RUN apt-get update && apt-get upgrade -y && apt-get clean
+
 # Define the working directory
 WORKDIR /var/www/html
 

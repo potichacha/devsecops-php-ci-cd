@@ -407,6 +407,4 @@ workflows:
             - build-docker-image
           filters:
             branches:
-              only: 
-                - main
-                - /^feature\/.*/
+              only: [main,/^feature\/.*/]

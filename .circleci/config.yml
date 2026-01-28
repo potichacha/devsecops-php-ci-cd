@@ -335,8 +335,8 @@ jobs:
           command: |
             trivy image --severity HIGH,CRITICAL --output trivy-report.txt ghcr.io/potichacha/devsecops-php-ci-cd:main
       - store_artifacts:
-        path: trivy-report.txt
-        destination: trivy-security-report
+          path: trivy-report.txt
+          destination: trivy-security-report
 
 workflows:
   main_workflow:

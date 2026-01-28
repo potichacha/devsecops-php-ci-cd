@@ -319,13 +319,24 @@ jobs:
       - checkout
       - setup_remote_docker
       - run:
+          name: Log in to GHCR
+          command: |
+            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+      - run:
+          name: Pull Docker image
+          command: |
+            docker pull ghcr.io/potichacha/devsecops-php-ci-cd:main
+      - run:
           name: Install Trivy
           command: |
             curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
       - run:
           name: Scan Docker image
           command: |
-            trivy image ghcr.io/potichacha/devsecops-php-ci-cd:main --severity HIGH,CRITICAL
+            trivy image --severity HIGH,CRITICAL --output trivy-report.txt ghcr.io/potichacha/devsecops-php-ci-cd:main
+      - store_artifacts:
+        path: trivy-report.txt
+        destination: trivy-security-report
 
 workflows:
   main_workflow:
@@ -396,4 +407,6 @@ workflows:
             - build-docker-image
           filters:
             branches:
-              only: [main]
+              only: 
+                - main
+                - /^feature\/.*/

@@ -496,7 +496,7 @@ deploy-ssh-production:
 **Important** : La clé SSH (`php-devops-production.pem`) n'est PAS dans le repo pour des raisons de sécurité.
 
 Pour accéder à l'instance EC2 :
-1. Demander la clé SSH à Sacha
+1. Recuperer la clé SSH
 2. Placer la clé dans un endroit sûr (ex: `~/.ssh/`)
 3. Modifier les permissions : `chmod 400 php-devops-production.pem`
 4. Se connecter : `ssh -i php-devops-production.pem ubuntu@51.20.52.225`

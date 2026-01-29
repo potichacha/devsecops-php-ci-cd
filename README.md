@@ -34,7 +34,17 @@ Application PHP de démonstration pour le cours DevSecOps.
 | 3 | Job metrics-phploc | Fait | Sacha |
 | 3 | Job lint-phpmd | Fait | Sacha |
 | 3 | Job lint-php-doc-check | Fait | Sacha |
-| 3 | Déploiement AWS EC2 | À faire | - |
+| 3.3 | Déploiement AWS EC2 | Fait | Malik |
+| 3.3 | Création instance EC2 t3.micro Ubuntu 22.04 | Fait | Malik |
+| 3.3 | Installation PHP 8.2 + extensions (GD, XML, mbstring, curl, zip) | Fait | Malik |
+| 3.3 | Installation et configuration Apache 2.4 | Fait | Malik |
+| 3.3 | Installation Composer | Fait | Malik |
+| 3.3 | Configuration DocumentRoot Apache vers /var/www/html/public | Fait | Malik |
+| 3.3 | Clonage repository sur serveur EC2 | Fait | Malik |
+| 3.3 | Configuration clé SSH CircleCI (fingerprint SHA256:fVrzNmOU1wUYS9sRBQFH...) | Fait | Malik |
+| 3.3 | Configuration variables CircleCI (PROD_SSH_USER, PROD_SSH_HOST, PROD_DEPLOY_DIRECTORY) | Fait | Malik |
+| 3.3 | Modification deploy-ssh-production job avec identification explicite clé SSH | Fait | Malik |
+| 3.3 | Test et validation déploiement automatique sur http://51.20.52.225 | Fait | Malik |
 | 4 | Rapport final | À faire | - |
 | 5 | Sécurité GitHub | À faire | - |
 | 5 | Sécurité Docker (scan Trivy) | À faire | - |
@@ -66,7 +76,30 @@ cd devsecops-php-ci-cd
 2. Aller sur **https://infisical.com** et accepter l'invitation
 3. Vous pourrez voir/modifier les secrets
 
-### 4. Workflow de travail
+### 4. Accéder à AWS EC2 (si nécessaire)
+
+**Important** : L'instance EC2 est déjà configurée et fonctionnelle.
+
+Pour accéder à l'instance :
+1. Récupérer la clé SSH `php-devops-production.pem`
+2. Placer la clé dans un endroit sûr (ex: `~/.ssh/`)
+3. Modifier les permissions :
+```bash
+chmod 400 php-devops-production.pem
+```
+1. Se connecter :
+```bash
+ssh -i php-devops-production.pem ubuntu@51.20.52.225
+```
+
+**Informations sur l'instance** :
+- Type : t3.micro
+- OS : Ubuntu 22.04 LTS
+- IP : 51.20.52.225
+- URL : http://51.20.52.225
+- Dossier du projet : `/var/www/html`
+
+### 5. Workflow de travail
 
 ```bash
 # 1. Se mettre à jour
@@ -142,9 +175,12 @@ docker stop php-devops-app
 
 | Variable | Description | Status |
 |----------|-------------|--------|
-| `GHCR_USERNAME` | Username GitHub |
-| `GHCR_PAT` | Personal Access Token GitHub |
-| `INFISICAL_TOKEN` | Service Token Infisical |
+| `GHCR_USERNAME` | Username GitHub | Fait |
+| `GHCR_PAT` | Personal Access Token GitHub | Fait |
+| `INFISICAL_TOKEN` | Service Token Infisical | Fait |
+| `PROD_SSH_USER` | User SSH pour EC2 | Fait |
+| `PROD_SSH_HOST` | IP ou DNS de l'instance EC2 | Fait |
+| `PROD_DEPLOY_DIRECTORY` | Répertoire de déploiement sur EC2 | Fait |
 
 ### Jobs existants dans le pipeline
 
@@ -160,7 +196,7 @@ docker stop php-devops-app
 | `lint-phpmd` | PHP Mess Detector - qualité du code |
 | `lint-php-doc-check` | Vérifie la documentation du code |
 | `build-docker-image` | Build et push image vers GHCR |
-| `deploy-ssh-production` | Déploiement SSH (pas encore configuré) | **A FAIRE** |
+| `deploy-ssh-production` | Déploiement SSH vers EC2 | Fait |
 
 ### Infisical
 
@@ -290,66 +326,201 @@ metrics-phploc:
 
 ---
 
-## 3.3 Déploiement AWS EC2 (À FAIRE )
+## 3.3 Déploiement AWS EC2 (Fait)
 
-### Prérequis
+### Instance EC2 de production
 
-1. Une instance EC2 avec :
-   - Ubuntu ou Amazon Linux
-   - PHP 8.2 installé
-   - Apache ou Nginx installé
-   - Composer installé
-   - Git installé
+**Informations** :
+- Type : t3.micro
+- OS : Ubuntu 22.04 LTS
+- IP publique : 51.20.52.225
+- URL : http://51.20.52.225
+- Ports ouverts : 22 (SSH), 80 (HTTP), 443 (HTTPS)
 
-2. Une clé SSH pour se connecter à l'instance
+**Logiciels installés** :
+- PHP 8.2 avec extensions (GD, XML, mbstring, curl, zip)
+- Composer
+- Apache 2.4
+- Git
 
-### Étapes
+### Configuration réalisée
 
-#### 1. Ajouter la clé SSH dans CircleCI
+#### 1. Création de l'instance EC2
 
-1. Aller sur CircleCI → Project Settings → **SSH Keys**
-2. Cliquer **"Add SSH Key"**
-3. Hostname : l'IP ou DNS de votre EC2
-4. Private Key : coller votre clé privée SSH
-5. Cliquer **"Add SSH Key"**
-6. **Copier le fingerprint** généré
+1. Instance créée sur AWS EC2
+2. Type : t3.micro (éligible au Free Tier)
+3. AMI : Ubuntu Server 22.04 LTS
+4. Clé SSH créée et téléchargée : `php-devops-production.pem`
+5. Security Group configuré avec les ports 22, 80, 443 ouverts
 
-#### 2. Ajouter les variables d'environnement dans CircleCI
+#### 2. Installation des dépendances sur EC2
 
-Aller dans Project Settings → Environment Variables et ajouter :
-
-| Variable | Valeur | Exemple |
-|----------|--------|---------|
-| `PROD_SSH_USER` | User SSH | `ubuntu` ou `ec2-user` |
-| `PROD_SSH_HOST` | IP ou DNS EC2 | `ec2-xx-xx-xx-xx.compute.amazonaws.com` |
-| `PROD_SSH_FINGERPRINT` | Le fingerprint copié | `ab:cd:ef:...` |
-| `PROD_DEPLOY_DIRECTORY` | Chemin sur le serveur | `/var/www/html` |
-
-#### 3. Préparer l'instance EC2
+Connexion SSH et installation :
 
 ```bash
-# Se connecter à l'instance
-ssh -i votre-cle.pem ubuntu@votre-ip-ec2
+# Connexion à l'instance
+ssh -i php-devops-production.pem ubuntu@51.20.52.225
 
-# Installer les dépendances
+# Mise à jour du système
+sudo apt update && sudo apt upgrade -y
+
+# Installation de PHP 8.2 et extensions
+sudo apt install -y software-properties-common
+sudo add-apt-repository ppa:ondrej/php -y
 sudo apt update
-sudo apt install -y php8.2 php8.2-gd php8.2-xml composer git apache2
+sudo apt install -y php8.2 php8.2-cli php8.2-fpm php8.2-mysql php8.2-xml \
+                    php8.2-mbstring php8.2-curl php8.2-zip php8.2-gd php8.2-intl
 
-# Cloner le repo
-cd /var/www/html
-sudo git clone https://github.com/potichacha/devsecops-php-ci-cd.git .
-sudo chown -R www-data:www-data /var/www/html
+# Installation de Composer
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
 
-# Installer les dépendances PHP
-sudo composer install --no-dev
+# Installation d'Apache
+sudo apt install -y apache2 libapache2-mod-php8.2
+sudo a2enmod rewrite
+sudo systemctl enable apache2
+sudo systemctl start apache2
+
+# Installation de Git
+sudo apt install -y git
 ```
 
-#### 4. Tester le déploiement
+#### 3. Clonage du projet
 
-1. Aller sur CircleCI
-2. Lancer le pipeline sur `main`
-3. Approuver le job `hold`
-4. Le job `deploy-ssh-production` devrait s'exécuter
+```bash
+# Préparation du répertoire web
+sudo rm -rf /var/www/html/*
+cd /var/www/html
+
+# Clonage du repo
+sudo git clone https://github.com/potichacha/devsecops-php-ci-cd.git .
+
+# Installation des dépendances
+sudo composer install --optimize-autoloader --no-interaction --prefer-dist --no-dev
+
+# Configuration des permissions
+sudo chown -R www-data:www-data /var/www/html
+sudo chmod -R 755 /var/www/html
+```
+
+#### 4. Configuration Apache
+
+Fichier `/etc/apache2/sites-available/000-default.conf` :
+
+```apache
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /var/www/html/public
+
+    <Directory /var/www/html/public>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+```
+
+Redémarrage d'Apache :
+```bash
+sudo systemctl restart apache2
+```
+
+#### 5. Configuration CircleCI pour le déploiement
+
+**Clé SSH ajoutée dans CircleCI** :
+1. Project Settings → SSH Keys
+2. Hostname : `51.20.52.225`
+3. Private Key : contenu de `php-devops-production.pem`
+4. Fingerprint : `SHA256:fVrzNmOU1wUYS9sRBQFH+SFZVU41VH0Tv7FoHO5qlxg`
+
+**Variables d'environnement configurées** :
+
+| Variable | Valeur |
+|----------|--------|
+| `PROD_SSH_USER` | `ubuntu` |
+| `PROD_SSH_HOST` | `51.20.52.225` |
+| `PROD_DEPLOY_DIRECTORY` | `/var/www/html` |
+
+**Job de déploiement dans `.circleci/config.yml`** :
+
+```yaml
+deploy-ssh-production:
+  executor: simple-executor
+  steps:
+    - checkout
+    - add_ssh_keys:
+        fingerprints:
+          - "SHA256:fVrzNmOU1wUYS9sRBQFH+SFZVU41VH0Tv7FoHO5qlxg"
+    - run:
+        name: Deploy to Production AWS
+        command: |
+          KEY_FILE=$(ls ~/.ssh/id_rsa_* 2>/dev/null | head -n1)
+          echo "Using key: $KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes $PROD_SSH_USER@$PROD_SSH_HOST \<< 'EOF'
+          PHP_FPM_VERSION=$(php -v | head -n 1 | cut -d ' ' -f 2 | cut -d '.' -f 1-2)
+          cd $PROD_DEPLOY_DIRECTORY
+          git pull origin main
+          composer install --optimize-autoloader --no-interaction --prefer-dist --no-dev
+          sudo service php${PHP_FPM_VERSION}-fpm restart || true
+          EOF
+```
+
+### Workflow de déploiement
+
+1. Un commit est poussé sur la branche `main`
+2. CircleCI lance automatiquement le pipeline
+3. Tous les jobs (build, test, lint, metrics) s'exécutent
+4. Le job `hold` attend une approbation manuelle
+5. Un développeur approuve le déploiement sur CircleCI
+6. Le job `deploy-ssh-production` se connecte en SSH à EC2
+7. Le code est mis à jour via `git pull`
+8. Les dépendances sont installées
+9. Apache/PHP-FPM est redémarré
+10. L'application est déployée et accessible sur http://51.20.52.225
+
+### Pour les collaborateurs : Tester le déploiement
+
+1. Faire une modification dans le code (ex: `src/ImageCreator.php`)
+2. Commiter et pusher sur `main`
+3. Aller sur CircleCI et attendre que le pipeline soit au vert
+4. Cliquer sur le job `hold` et approuver
+5. Attendre que `deploy-ssh-production` se termine
+6. Vérifier sur http://51.20.52.225 que la modification est visible
+
+### Accès à l'instance EC2
+
+**Important** : La clé SSH (`php-devops-production.pem`) n'est PAS dans le repo pour des raisons de sécurité.
+
+Pour accéder à l'instance EC2 :
+1. Demander la clé SSH à Sacha
+2. Placer la clé dans un endroit sûr (ex: `~/.ssh/`)
+3. Modifier les permissions : `chmod 400 php-devops-production.pem`
+4. Se connecter : `ssh -i php-devops-production.pem ubuntu@51.20.52.225`
+
+### Dépannage
+
+**Problème : Le déploiement échoue avec "Permission denied"**
+- Vérifier que la variable `PROD_SSH_USER` est bien `ubuntu`
+- Vérifier que la clé SSH est bien ajoutée dans CircleCI
+- Vérifier que le fingerprint est correct dans `config.yml`
+
+**Problème : L'application ne s'affiche pas après le déploiement**
+- Se connecter en SSH à l'instance
+- Vérifier les logs Apache : `sudo tail -f /var/log/apache2/error.log`
+- Vérifier que le DocumentRoot pointe bien vers `/var/www/html/public`
+
+**Problème : "composer: command not found"**
+- Réinstaller Composer sur l'instance EC2 (voir section Installation)
+
+---
+
+## 3.4 Ancienne section (pour référence uniquement)
+
+Cette section contenait les instructions pour configurer AWS EC2 manuellement. Elle a été remplacée par la section 3.3 qui documente la configuration déjà réalisée.
 
 ---
 
